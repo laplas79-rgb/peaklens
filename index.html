@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<title>PeakLens</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080c10;--bg2:#0d1318;--bg3:#121a22;--sur:#182030;
+  --bd:rgba(100,180,220,0.13);--bd2:rgba(100,180,220,0.26);
+  --ice:#b8dff0;--gl:#7ec8e3;--snow:#f0ede8;
+  --gold:#d4af6a;--moss:#4a8c5c;--red:#e05555;
+  --mut:rgba(184,223,240,0.45);--night:#0a0e1a;
+}
+html,body{height:100%;background:var(--bg);overflow:hidden}
+body{color:var(--snow);font-family:'Outfit',sans-serif}
+
+.app{height:100dvh;display:flex;flex-direction:column;overflow:hidden;position:relative}
+
+/* ── HEADER ── */
+.hdr{
+  padding:13px 18px 10px;display:flex;align-items:center;justify-content:space-between;
+  border-bottom:1px solid var(--bd);background:rgba(8,12,16,0.95);
+  flex-shrink:0;z-index:20;position:relative;
+}
+.logo{font-family:'Playfair Display',serif;font-weight:900;font-size:1.5rem;color:var(--snow);display:flex;align-items:center;gap:7px}
+.lp{color:var(--gl)}
+.tag{font-size:.55rem;letter-spacing:.25em;text-transform:uppercase;color:var(--mut);margin-top:2px}
+.sdots{display:flex;flex-direction:column;gap:4px;align-items:flex-end}
+.srow{display:flex;align-items:center;gap:5px;font-size:.58rem;letter-spacing:.1em;text-transform:uppercase;color:var(--mut)}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--moss);box-shadow:0 0 5px var(--moss);animation:bl 2.5s ease-in-out infinite}
+.dot.off{background:var(--red);box-shadow:none;animation:none}
+.dot.warn{background:var(--gold);box-shadow:0 0 5px var(--gold)}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ── MODE TABS ── */
+.tabs{
+  display:flex;flex-shrink:0;background:var(--bg2);
+  border-bottom:1px solid var(--bd);z-index:10;
+}
+.tab{
+  flex:1;padding:10px;display:flex;flex-direction:column;align-items:center;gap:3px;
+  cursor:pointer;border:none;background:transparent;color:var(--mut);
+  font-family:'Outfit',sans-serif;font-size:.6rem;letter-spacing:.15em;
+  text-transform:uppercase;transition:all .2s;border-bottom:2px solid transparent;
+}
+.tab.active{color:var(--gl);border-bottom-color:var(--gl)}
+.tab-icon{font-size:1.2rem}
+
+/* ══════════════════════════════════
+   DAY MODE (Camera + AI)
+══════════════════════════════════ */
+.day-mode{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.day-mode.hidden{display:none}
+
+.camw{position:relative;flex-shrink:0;background:#040608;overflow:hidden;height:clamp(190px,38vh,340px)}
+#vid{width:100%;height:100%;object-fit:cover;display:none}
+#cv{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:none}
+.cov{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(4,6,8,.5) 0%,transparent 25%,transparent 68%,rgba(4,6,8,.85) 100%);display:none}
+.vf{position:absolute;top:50%;left:50%;transform:translate(-50%,-58%);width:144px;height:96px;display:none}
+.vfc{position:absolute;width:16px;height:16px;border-color:rgba(184,223,240,.7);border-style:solid}
+.tl{top:0;left:0;border-width:2px 0 0 2px}.tr{top:0;right:0;border-width:2px 2px 0 0}
+.bl2{bottom:0;left:0;border-width:0 0 2px 2px}.br2{bottom:0;right:0;border-width:0 2px 2px 0}
+.ct{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:5px;height:5px;border-radius:50%;border:1.5px solid rgba(184,223,240,.5)}
+.sl{position:absolute;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gl) 40%,var(--gl) 60%,transparent);opacity:.45;animation:sm 3s ease-in-out infinite;display:none}
+@keyframes sm{0%{top:12%}50%{top:86%}100%{top:12%}}
+.cmp{position:absolute;top:11px;right:13px;display:none;flex-direction:column;align-items:center;gap:3px}
+.cring{width:44px;height:44px;border-radius:50%;background:rgba(8,12,16,.82);border:1.5px solid rgba(184,223,240,.2);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;position:relative}
+.cring::before{content:'N';position:absolute;top:3px;font-size:.44rem;font-weight:700;color:var(--red);opacity:.85}
+.nw{position:absolute;width:2px;height:24px;top:50%;left:50%;transform-origin:50% 100%;transform:translate(-50%,-100%) rotate(0deg);transition:transform .4s cubic-bezier(.34,1.56,.64,1)}
+.nn{height:55%;background:linear-gradient(to bottom,var(--red),#ff8080);border-radius:2px 2px 0 0}
+.ns{height:45%;background:var(--ice);opacity:.4}
+.cdeg{font-family:'Playfair Display',serif;font-size:.68rem;color:var(--ice)}
+.gc{position:absolute;bottom:11px;left:13px;background:rgba(8,12,16,.8);border:1px solid rgba(184,223,240,.15);border-radius:20px;padding:4px 9px;font-size:.58rem;color:var(--mut);display:none}
+.nocam{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:radial-gradient(ellipse at center,#0f1820,#040608)}
+.nocam svg{opacity:.18}
+.nocam p{font-size:.72rem;letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+
+.sens{display:grid;grid-template-columns:repeat(4,1fr);flex-shrink:0;border-bottom:1px solid var(--bd);background:var(--bg2)}
+.sen{padding:7px 9px;border-right:1px solid var(--bd)}
+.sen:last-child{border-right:none}
+.slbl{font-size:.5rem;letter-spacing:.18em;text-transform:uppercase;color:var(--mut);margin-bottom:2px}
+.sval{font-family:'Playfair Display',serif;font-size:.84rem;color:var(--snow);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sval.ok{color:var(--gl)}.sval.bad{color:var(--gold)}
+
+.ctrl{padding:11px 15px;display:flex;gap:8px;flex-shrink:0;background:linear-gradient(180deg,var(--bg2),var(--bg));border-bottom:1px solid var(--bd)}
+.btn{border:none;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600;font-size:.78rem;letter-spacing:.1em;text-transform:uppercase;border-radius:8px;transition:all .16s;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 13px}
+.bcam{background:var(--sur);color:var(--ice);border:1px solid var(--bd2);min-width:100px;flex-shrink:0}
+.bcam:active{transform:scale(.96)}
+.bid{flex:1;background:linear-gradient(135deg,var(--gl),#5ba8c0);color:var(--bg);font-weight:700;box-shadow:0 4px 18px rgba(126,200,227,.25)}
+.bid:active:not(:disabled){transform:scale(.97)}
+.bid:disabled{opacity:.3;cursor:not-allowed;box-shadow:none}
+.bfl{background:var(--sur);color:var(--mut);border:1px solid var(--bd);width:42px;padding:12px;font-size:.95rem;flex-shrink:0;display:none}
+
+.scr{flex:1;overflow-y:auto;padding:13px 15px 28px;-webkit-overflow-scrolling:touch}
+.scr::-webkit-scrollbar{width:3px}
+.scr::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+
+.ititle{font-family:'Playfair Display',serif;font-size:.95rem;color:var(--ice);margin-bottom:9px}
+.step{display:flex;gap:9px;align-items:flex-start;padding:8px 11px;background:var(--bg2);border:1px solid var(--bd);border-radius:8px;margin-bottom:6px}
+.stn{font-family:'Playfair Display',serif;font-size:1rem;color:var(--gl);opacity:.6;min-width:18px;line-height:1.2}
+.stt{font-size:.76rem;line-height:1.5;color:rgba(240,237,232,.62)}
+.tip{margin-top:5px;padding:9px 12px;border-left:2px solid var(--gl);background:rgba(126,200,227,.04);border-radius:0 6px 6px 0;font-size:.72rem;line-height:1.5;color:var(--mut)}
+
+.ldw{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:36px 20px}
+.mtnl{position:relative;width:72px;height:52px}
+.mtnl svg{animation:mp 2s ease-in-out infinite}
+@keyframes mp{0%,100%{opacity:.3}50%{opacity:1}}
+.rings{position:absolute;inset:-18px;display:flex;align-items:center;justify-content:center}
+.ring{position:absolute;border-radius:50%;border:1.5px solid var(--gl);animation:re 2s ease-out infinite}
+.ring:nth-child(1){width:36px;height:36px;animation-delay:0s}
+.ring:nth-child(2){width:58px;height:58px;animation-delay:.5s}
+.ring:nth-child(3){width:80px;height:80px;animation-delay:1s}
+@keyframes re{0%{opacity:.8;transform:scale(.7)}100%{opacity:0;transform:scale(1.2)}}
+.ltxt{font-size:.68rem;letter-spacing:.22em;text-transform:uppercase;color:var(--gl);animation:tf 1.5s ease-in-out infinite}
+@keyframes tf{0%,100%{opacity:.3}50%{opacity:1}}
+
+.rc{border-radius:12px;overflow:hidden;border:1px solid var(--bd2);background:var(--bg3);animation:cr .5s cubic-bezier(.16,1,.3,1);box-shadow:0 8px 36px rgba(0,0,0,.5)}
+@keyframes cr{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}
+.rh{padding:18px 18px 14px;background:linear-gradient(135deg,rgba(126,200,227,.1),transparent 50%),linear-gradient(180deg,var(--sur),var(--bg3));border-bottom:1px solid var(--bd)}
+.rt{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.rn{font-family:'Playfair Display',serif;font-weight:900;font-size:1.65rem;color:var(--snow);line-height:1.05}
+.rs{font-size:.7rem;color:var(--mut);margin-top:3px;letter-spacing:.05em}
+.cb{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0}
+.cn{font-family:'Playfair Display',serif;font-weight:700;font-size:1.8rem;line-height:1}
+.cbb{width:56px;height:3px;background:rgba(126,200,227,.1);border-radius:2px;overflow:hidden}
+.cbf{height:100%;border-radius:2px;transition:width 1s cubic-bezier(.16,1,.3,1)}
+.cl{font-size:.5rem;letter-spacing:.2em;text-transform:uppercase;color:var(--mut)}
+.high .cn{color:var(--gl)}.high .cbf{background:linear-gradient(90deg,var(--moss),var(--gl))}
+.med .cn{color:var(--gold)}.med .cbf{background:linear-gradient(90deg,#b07830,var(--gold))}
+.low .cn{color:var(--red)}.low .cbf{background:linear-gradient(90deg,#a03030,var(--red))}
+.sg{display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:13px 15px;border-bottom:1px solid var(--bd)}
+.sc{background:var(--bg2);border:1px solid var(--bd);border-radius:8px;padding:9px 11px}
+.scl{font-size:.52rem;letter-spacing:.18em;text-transform:uppercase;color:var(--mut);margin-bottom:3px}
+.scv{font-size:.88rem;font-weight:500;color:var(--snow)}
+.scv.a{color:var(--gl)}
+.desc{padding:12px 15px;border-bottom:1px solid var(--bd)}
+.desc p{font-size:.78rem;line-height:1.65;color:rgba(240,237,232,.58);font-weight:300}
+.alts{padding:12px 15px}
+.al{font-size:.54rem;letter-spacing:.18em;text-transform:uppercase;color:var(--mut);margin-bottom:6px}
+.ai{display:flex;justify-content:space-between;align-items:center;padding:7px 10px;background:var(--bg2);border:1px solid var(--bd);border-radius:6px;margin-bottom:4px}
+.ai:last-child{margin-bottom:0}
+.an{font-size:.78rem;color:var(--snow)}
+.ap{font-family:'Playfair Display',serif;font-size:.82rem;color:var(--gl);opacity:.7}
+.errc{background:rgba(224,85,85,.06);border:1px solid rgba(224,85,85,.22);border-radius:10px;padding:13px 15px;display:flex;gap:10px;align-items:flex-start;animation:cr .3s ease}
+.errt{font-size:.76rem;line-height:1.6;color:rgba(240,237,232,.7)}
+
+/* ══════════════════════════════════
+   NIGHT MODE (Compass + Mountains)
+══════════════════════════════════ */
+.night-mode{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--night)}
+.night-mode.hidden{display:none}
+
+/* Sky with stars */
+.night-sky{
+  position:relative;flex-shrink:0;
+  height:clamp(200px,42vh,360px);
+  background:radial-gradient(ellipse 80% 60% at 50% 0%,#1a2a4a 0%,#080c18 60%,#040608 100%);
+  overflow:hidden;
+}
+
+/* Stars */
+.stars{position:absolute;inset:0;pointer-events:none}
+.star{position:absolute;background:white;border-radius:50%;animation:twinkle var(--dur,3s) ease-in-out infinite var(--delay,0s)}
+@keyframes twinkle{0%,100%{opacity:var(--op,.6)}50%{opacity:.1}}
+
+/* Horizon line */
+.horizon{
+  position:absolute;bottom:0;left:0;right:0;height:60px;
+  background:linear-gradient(to top,rgba(10,14,26,1) 0%,rgba(10,14,26,0.6) 60%,transparent 100%);
+}
+
+/* Mountain silhouettes */
+.mtn-silhouette{
+  position:absolute;bottom:0;left:0;right:0;height:120px;
+  background:url("data:image/svg+xml,%3Csvg viewBox='0 0 400 120' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 120 L40 60 L70 80 L110 30 L150 70 L190 20 L230 65 L265 40 L300 75 L340 25 L370 55 L400 35 L400 120Z' fill='%230a0e1a'/%3E%3C/svg%3E") center bottom / cover no-repeat;
+  pointer-events:none;
+}
+
+/* Big compass */
+.big-compass{
+  position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-60%);
+  width:140px;height:140px;
+}
+.bc-ring{
+  width:100%;height:100%;border-radius:50%;
+  border:1.5px solid rgba(184,223,240,0.15);
+  background:rgba(8,12,16,0.6);
+  backdrop-filter:blur(8px);
+  position:relative;display:flex;align-items:center;justify-content:center;
+}
+/* Cardinal marks */
+.bc-ring::before{
+  content:'N';position:absolute;top:6px;left:50%;transform:translateX(-50%);
+  font-size:.65rem;font-weight:700;color:var(--red);letter-spacing:.1em;
+}
+.bc-s::after{content:'S';position:absolute;bottom:6px;left:50%;transform:translateX(-50%);font-size:.55rem;color:var(--mut)}
+.bc-e{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:.55rem;color:var(--mut)}
+.bc-w{position:absolute;left:8px;top:50%;transform:translateY(-50%);font-size:.55rem;color:var(--mut)}
+
+.big-needle{
+  position:absolute;width:3px;height:70px;
+  top:50%;left:50%;
+  transform-origin:50% 100%;
+  transform:translate(-50%,-100%) rotate(0deg);
+  transition:transform .5s cubic-bezier(.34,1.56,.64,1);
+}
+.bn-n{height:55%;background:linear-gradient(to bottom,var(--red),#ff9090);border-radius:3px 3px 0 0}
+.bn-s{height:45%;background:linear-gradient(to bottom,var(--ice),rgba(184,223,240,.3));border-radius:0 0 3px 3px}
+.bc-center{position:absolute;width:8px;height:8px;border-radius:50%;background:var(--gl);top:50%;left:50%;transform:translate(-50%,-50%);box-shadow:0 0 8px var(--gl)}
+
+.heading-display{
+  position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+  text-align:center;
+  background:rgba(8,12,16,0.75);
+  border:1px solid rgba(184,223,240,.15);
+  border-radius:20px;padding:5px 16px;
+  backdrop-filter:blur(6px);
+}
+.hdg-num{font-family:'Playfair Display',serif;font-size:1.4rem;color:var(--snow);line-height:1}
+.hdg-dir{font-size:.58rem;letter-spacing:.2em;text-transform:uppercase;color:var(--gl)}
+
+/* Mountain labels overlay */
+.mtn-labels{
+  position:absolute;inset:0;pointer-events:none;
+}
+.mtn-label{
+  position:absolute;
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  transform:translateX(-50%);
+  animation:labelPop .4s cubic-bezier(.16,1,.3,1);
+}
+@keyframes labelPop{from{opacity:0;transform:translateX(-50%) scale(.8)}to{opacity:1;transform:translateX(-50%) scale(1)}}
+.mtn-label-name{
+  background:rgba(8,12,16,0.85);
+  border:1px solid rgba(184,223,240,.2);
+  border-radius:4px;padding:3px 8px;
+  font-size:.65rem;font-weight:600;letter-spacing:.05em;
+  color:var(--snow);white-space:nowrap;
+  backdrop-filter:blur(4px);
+}
+.mtn-label-alt{font-size:.55rem;color:var(--gl);letter-spacing:.05em}
+.mtn-label-dot{width:4px;height:4px;border-radius:50%;background:var(--gl);box-shadow:0 0 6px var(--gl)}
+.mtn-label-line{width:1px;background:linear-gradient(to bottom,rgba(126,200,227,.4),transparent);height:20px}
+
+/* Night sensors */
+.night-sens{
+  display:grid;grid-template-columns:repeat(3,1fr);
+  flex-shrink:0;border-bottom:1px solid var(--bd);
+  background:rgba(10,14,26,0.95);
+}
+.nsen{padding:8px 10px;border-right:1px solid var(--bd);text-align:center}
+.nsen:last-child{border-right:none}
+.nslbl{font-size:.5rem;letter-spacing:.18em;text-transform:uppercase;color:var(--mut);margin-bottom:2px}
+.nsval{font-family:'Playfair Display',serif;font-size:.9rem;color:var(--snow)}
+.nsval.ok{color:var(--gl)}
+
+/* Night scan button */
+.night-ctrl{padding:12px 15px;display:flex;gap:8px;flex-shrink:0;background:rgba(10,14,26,0.95);border-bottom:1px solid var(--bd)}
+.bscan{flex:1;background:linear-gradient(135deg,#3a6080,#2a4860);color:var(--ice);font-weight:700;border:1px solid rgba(126,200,227,.2);box-shadow:0 4px 18px rgba(58,96,128,.3)}
+.bscan:active:not(:disabled){transform:scale(.97)}
+.bscan:disabled{opacity:.3;cursor:not-allowed}
+
+/* Mountain list */
+.night-scr{flex:1;overflow-y:auto;padding:12px 15px 28px;-webkit-overflow-scrolling:touch}
+.night-scr::-webkit-scrollbar{width:3px}
+.night-scr::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+
+.mtn-list-title{
+  font-family:'Playfair Display',serif;font-size:.85rem;color:var(--ice);
+  margin-bottom:10px;display:flex;align-items:center;gap:8px;
+}
+.mtn-list-title::after{content:'';flex:1;height:1px;background:var(--bd)}
+
+.mtn-card{
+  background:rgba(18,26,34,0.9);
+  border:1px solid var(--bd);border-radius:10px;
+  padding:12px 14px;margin-bottom:8px;
+  display:flex;align-items:center;gap:12px;
+  animation:cr .4s cubic-bezier(.16,1,.3,1);
+  transition:border-color .2s;
+}
+.mtn-card:hover{border-color:var(--bd2)}
+
+.mtn-card-dir{
+  width:36px;height:36px;border-radius:50%;
+  background:rgba(126,200,227,.08);
+  border:1px solid rgba(126,200,227,.2);
+  display:flex;align-items:center;justify-content:center;
+  font-size:.65rem;font-weight:700;color:var(--gl);
+  flex-shrink:0;letter-spacing:.05em;
+}
+.mtn-card-info{flex:1;min-width:0}
+.mtn-card-name{font-family:'Playfair Display',serif;font-size:1rem;color:var(--snow);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mtn-card-sub{font-size:.65rem;color:var(--mut);margin-top:2px}
+.mtn-card-right{text-align:right;flex-shrink:0}
+.mtn-card-elev{font-family:'Playfair Display',serif;font-size:1rem;color:var(--gl)}
+.mtn-card-dist{font-size:.6rem;color:var(--mut);margin-top:1px}
+
+/* Confidence bar on card */
+.mtn-card-conf{
+  width:100%;height:2px;background:rgba(126,200,227,.1);
+  border-radius:2px;overflow:hidden;margin-top:6px;
+}
+.mtn-card-conf-fill{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--moss),var(--gl))}
+
+.night-instr{
+  display:flex;flex-direction:column;gap:8px;padding:4px 0;
+}
+.ni{display:flex;gap:10px;align-items:flex-start;padding:9px 12px;background:rgba(18,26,34,.8);border:1px solid var(--bd);border-radius:8px}
+.nin{font-family:'Playfair Display',serif;font-size:1rem;color:var(--gl);opacity:.6;min-width:18px}
+.nit{font-size:.76rem;line-height:1.5;color:rgba(240,237,232,.6)}
+.ntip{padding:9px 12px;border-left:2px solid rgba(126,200,227,.3);background:rgba(126,200,227,.03);border-radius:0 6px 6px 0;font-size:.7rem;line-height:1.5;color:var(--mut);margin-top:4px}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- Header -->
+  <header class="hdr">
+    <div>
+      <div class="logo">
+        <svg width="20" height="14" viewBox="0 0 56 40" fill="none"><path d="M2 38L18 8l8 12 8-8 20 26Z" stroke="#7ec8e3" stroke-width="2" stroke-linejoin="round" fill="rgba(126,200,227,.1)"/><circle cx="34" cy="10" r="3" fill="rgba(184,223,240,.3)"/></svg>
+        Peak<span class="lp">Lens</span>
+      </div>
+      <div class="tag">Identifikace vrcholů · AI + GPS + Kompas</div>
+    </div>
+    <div class="sdots">
+      <div class="srow"><div class="dot off" id="dg"></div>GPS</div>
+      <div class="srow"><div class="dot warn" id="dc"></div>Kompas</div>
+    </div>
+  </header>
+
+  <!-- Mode tabs -->
+  <div class="tabs">
+    <button class="tab active" id="tab-day" onclick="switchMode('day')">
+      <span class="tab-icon">📷</span>Denní režim
+    </button>
+    <button class="tab" id="tab-night" onclick="switchMode('night')">
+      <span class="tab-icon">🌙</span>Noční režim
+    </button>
+  </div>
+
+  <!-- ═══ DAY MODE ═══ -->
+  <div class="day-mode" id="day-mode">
+    <div class="camw">
+      <div class="nocam" id="nocam">
+        <svg width="68" height="48" viewBox="0 0 56 40" fill="none"><path d="M2 38L18 8l8 12 8-8 20 26Z" stroke="#7ec8e3" stroke-width="2" stroke-linejoin="round" fill="rgba(126,200,227,.08)"/><circle cx="34" cy="10" r="4" fill="rgba(184,223,240,.25)"/></svg>
+        <p>Stiskněte Kamera pro zahájení</p>
+      </div>
+      <video id="vid" autoplay playsinline muted></video>
+      <canvas id="cv"></canvas>
+      <div class="cov" id="cov"></div>
+      <div class="vf" id="vf"><div class="vfc tl"></div><div class="vfc tr"></div><div class="vfc bl2"></div><div class="vfc br2"></div><div class="vfc ct"></div></div>
+      <div class="sl" id="sl"></div>
+      <div class="cmp" id="cmp">
+        <div class="cring"><div class="nw" id="nw"><div class="nn"></div><div class="ns"></div></div></div>
+        <div class="cdeg" id="cdeg">0°</div>
+      </div>
+      <div class="gc" id="gc"></div>
+    </div>
+
+    <div class="sens">
+      <div class="sen"><div class="slbl">Šířka</div><div class="sval bad" id="slat">—</div></div>
+      <div class="sen"><div class="slbl">Délka</div><div class="sval bad" id="slon">—</div></div>
+      <div class="sen"><div class="slbl">Směr</div><div class="sval bad" id="shdg">—</div></div>
+      <div class="sen"><div class="slbl">Výška</div><div class="sval bad" id="salt">—</div></div>
+    </div>
+
+    <div class="ctrl">
+      <button class="btn bcam" id="bcam">📷 Kamera</button>
+      <button class="btn bid" id="bid" disabled>🔍 Identifikovat</button>
+      <button class="btn bfl" id="bfl">⇄</button>
+    </div>
+
+    <div class="scr" id="day-scr">
+      <div id="instr">
+        <div class="ititle">Jak na to</div>
+        <div class="step"><div class="stn">1</div><div class="stt">Povolte GPS — zvyšuje přesnost identifikace</div></div>
+        <div class="step"><div class="stn">2</div><div class="stt">Klepněte na <b>Kamera</b> a namiřte na horu</div></div>
+        <div class="step"><div class="stn">3</div><div class="stt">Klepněte <b>⊙ Snímek</b> a pak <b>Identifikovat</b></div></div>
+        <div class="step"><div class="stn">4</div><div class="stt">AI analyzuje foto + GPS + kompas a pojmenuje vrchol</div></div>
+        <div class="tip">🌙 V noci nebo při špatné viditelnosti přepněte na <b>Noční režim</b>!</div>
+      </div>
+      <div id="out"></div>
+    </div>
+  </div>
+
+  <!-- ═══ NIGHT MODE ═══ -->
+  <div class="night-mode hidden" id="night-mode">
+    <div class="night-sky" id="night-sky">
+      <div class="stars" id="stars"></div>
+      <div class="mtn-silhouette"></div>
+
+      <!-- Big compass -->
+      <div class="big-compass">
+        <div class="bc-ring bc-s">
+          <span class="bc-e">V</span>
+          <span class="bc-w">Z</span>
+          <div class="big-needle" id="big-needle">
+            <div class="bn-n"></div>
+            <div class="bn-s"></div>
+          </div>
+          <div class="bc-center"></div>
+        </div>
+      </div>
+
+      <!-- Mountain labels -->
+      <div class="mtn-labels" id="mtn-labels"></div>
+
+      <!-- Heading display -->
+      <div class="heading-display">
+        <div class="hdg-num" id="hdg-num">—°</div>
+        <div class="hdg-dir" id="hdg-dir">Čekám na kompas</div>
+      </div>
+    </div>
+
+    <div class="night-sens">
+      <div class="nsen"><div class="nslbl">GPS</div><div class="nsval" id="n-gps">—</div></div>
+      <div class="nsen"><div class="nslbl">Směr pohledu</div><div class="nsval" id="n-hdg">—</div></div>
+      <div class="nsen"><div class="nslbl">Viditelné hory</div><div class="nsval" id="n-cnt">—</div></div>
+    </div>
+
+    <div class="night-ctrl">
+      <button class="btn bscan" id="bscan" disabled>🔭 Hledat hory v okolí</button>
+    </div>
+
+    <div class="night-scr" id="night-scr">
+      <div class="night-instr" id="night-instr">
+        <div class="ititle" style="font-family:'Playfair Display',serif;font-size:.9rem;color:var(--ice);margin-bottom:8px">Noční režim</div>
+        <div class="ni"><div class="nin">1</div><div class="nit">Povolte GPS — bez GPS noční režim nefunguje</div></div>
+        <div class="ni"><div class="nin">2</div><div class="nit">Namiřte telefon na obzor kde tušíte hory</div></div>
+        <div class="ni"><div class="nin">3</div><div class="nit">Klepněte <b>Hledat hory v okolí</b> — AI najde vrcholy podle GPS a kompasu</div></div>
+        <div class="ni"><div class="nin">4</div><div class="nit">Popisky vrcholů se zobrazí přímo na kompasovém displeji</div></div>
+        <div class="ntip">🌟 Funguje i ve dne při mlze, v lese nebo když hora není vidět!</div>
+      </div>
+      <div id="night-out"></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ── State ──
+let stream=null,camOn=false,snap=null,facing='environment';
+let gps=null,hdg=null,altVal=null;
+let currentMode='day';
+let foundMountains=[];
+
+const D8=['S','SV','V','JV','J','JZ','Z','SZ'];
+const D16=['S','SSV','SV','VSV','V','VJV','JV','JJV','J','JJZ','JZ','ZJZ','Z','ZSZ','SZ','SSZ'];
+
+// ── Stars ──
+function makeStars(){
+  const c=document.getElementById('stars');
+  for(let i=0;i<80;i++){
+    const s=document.createElement('div');
+    s.className='star';
+    const size=Math.random()*2+0.5;
+    s.style.cssText=`width:${size}px;height:${size}px;top:${Math.random()*85}%;left:${Math.random()*100}%;--dur:${2+Math.random()*4}s;--delay:${Math.random()*4}s;--op:${0.3+Math.random()*0.7}`;
+    c.appendChild(s);
+  }
+}
+makeStars();
+
+// ── GPS ──
+navigator.geolocation&&navigator.geolocation.watchPosition(p=>{
+  gps={lat:p.coords.latitude,lon:p.coords.longitude};
+  if(p.coords.altitude)altVal=Math.round(p.coords.altitude);
+  document.getElementById('dg').className='dot';
+  setSensor('slat',gps.lat.toFixed(3)+'°',true);
+  setSensor('slon',gps.lon.toFixed(3)+'°',true);
+  if(altVal)setSensor('salt',altVal+'m',true);
+  if(camOn){document.getElementById('gc').style.display='block';document.getElementById('gc').textContent='📍 '+gps.lat.toFixed(3)+'° '+gps.lon.toFixed(3)+'°';}
+  document.getElementById('n-gps').textContent=gps.lat.toFixed(2)+'°';
+  document.getElementById('n-gps').className='nsval ok';
+  document.getElementById('bscan').disabled=false;
+},()=>{document.getElementById('dg').className='dot off';},{enableHighAccuracy:true,maximumAge:4000});
+
+// ── Compass ──
+function onOri(e){
+  const h=e.webkitCompassHeading??(e.alpha!=null?(360-e.alpha)%360:null);
+  if(h==null)return;
+  hdg=Math.round(h);
+  document.getElementById('dc').className='dot';
+  setSensor('shdg',hdg+'°',true);
+  // Day compass
+  document.getElementById('nw').style.transform=`translate(-50%,-100%) rotate(${hdg}deg)`;
+  document.getElementById('cdeg').textContent=hdg+'° '+D8[Math.round(hdg/45)%8];
+  // Night compass
+  document.getElementById('big-needle').style.transform=`translate(-50%,-100%) rotate(${hdg}deg)`;
+  document.getElementById('hdg-num').textContent=hdg+'°';
+  document.getElementById('hdg-dir').textContent=D16[Math.round(hdg/22.5)%16];
+  document.getElementById('n-hdg').textContent=hdg+'° '+D8[Math.round(hdg/45)%8];
+  document.getElementById('n-hdg').className='nsval ok';
+  // Update label positions
+  updateLabelPositions();
+}
+if(typeof DeviceOrientationEvent!=='undefined'){
+  if(typeof DeviceOrientationEvent.requestPermission==='function'){
+    // iOS
+  }else{window.addEventListener('deviceorientation',onOri);}
+}
+
+function setSensor(id,val,ok){const el=document.getElementById(id);if(!el)return;el.textContent=val;el.className='sval '+(ok?'ok':'bad');}
+
+// ── Mode switch ──
+function switchMode(mode){
+  currentMode=mode;
+  document.getElementById('day-mode').classList.toggle('hidden',mode!=='day');
+  document.getElementById('night-mode').classList.toggle('hidden',mode!=='night');
+  document.getElementById('tab-day').classList.toggle('active',mode==='day');
+  document.getElementById('tab-night').classList.toggle('active',mode==='night');
+}
+
+// ── Camera ──
+async function startCam(){
+  try{
+    if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+      const r=await DeviceOrientationEvent.requestPermission().catch(()=>'denied');
+      if(r==='granted')window.addEventListener('deviceorientation',onOri);
+    }
+    if(stream)stream.getTracks().forEach(t=>t.stop());
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:1920},height:{ideal:1080}}});
+    document.getElementById('vid').srcObject=stream;
+    document.getElementById('vid').style.display='block';
+    document.getElementById('nocam').style.display='none';
+    document.getElementById('cv').style.display='none';
+    document.getElementById('cov').style.display='block';
+    document.getElementById('vf').style.display='block';
+    document.getElementById('sl').style.display='block';
+    document.getElementById('cmp').style.display='flex';
+    document.getElementById('bfl').style.display='flex';
+    if(gps){document.getElementById('gc').style.display='block';document.getElementById('gc').textContent='📍 '+gps.lat.toFixed(3)+'° '+gps.lon.toFixed(3)+'°';}
+    camOn=true;snap=null;
+    document.getElementById('bid').disabled=true;
+    document.getElementById('bcam').textContent='⊙ Snímek';
+    document.getElementById('instr').style.display='block';
+    document.getElementById('out').innerHTML='';
+  }catch(e){
+    showErr('Kamera nejde spustit. Ujistěte se, že stránka běží přes HTTPS.');
+  }
+}
+
+function takeSnap(){
+  const v=document.getElementById('vid'),c=document.getElementById('cv');
+  c.width=v.videoWidth;c.height=v.videoHeight;
+  c.getContext('2d').drawImage(v,0,0);
+  snap=c.toDataURL('image/jpeg',.88).split(',')[1];
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  document.getElementById('vid').style.display='none';
+  c.style.display='block';
+  document.getElementById('sl').style.display='none';
+  document.getElementById('vf').style.display='none';
+  camOn=false;
+  document.getElementById('bcam').textContent='📷 Kamera';
+  document.getElementById('bid').disabled=false;
+  document.getElementById('bfl').style.display='none';
+}
+
+document.getElementById('bcam').onclick=()=>camOn?takeSnap():startCam();
+document.getElementById('bfl').onclick=()=>{facing=facing==='environment'?'user':'environment';if(camOn)startCam();};
+
+// ── DAY: Identify ──
+document.getElementById('bid').onclick=async()=>{
+  if(!snap)return;
+  document.getElementById('bid').disabled=true;
+  document.getElementById('instr').style.display='none';
+  showLoad();
+  const ctx=[
+    gps?`GPS: ${gps.lat.toFixed(5)}°N, ${gps.lon.toFixed(5)}°E`:'GPS nedostupné',
+    hdg!=null?`Směr pohledu: ${hdg}°`:'',
+    altVal!=null?`Výška pozorovatele: ${altVal}m`:'',
+  ].filter(Boolean).join(' | ');
+
+  const prompt=`Jsi expert na horskou geografii. Analyzuj fotografii a identifikuj horu nebo kopec.
+Senzory: ${ctx}
+Odpověz POUZE validním JSON bez backticks:
+{"name":"Název","confidence":85,"elevation_m":2655,"range":"Pohoří","country":"Česko","distance_km":12,"description":"2-3 věty.","alternatives":[{"name":"Alt","confidence":50}]}
+Neznámé hodnoty = null. confidence je 0–100.`;
+
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:[{type:'image',source:{type:'base64',media_type:'image/jpeg',data:snap}},{type:'text',text:prompt}]}]})});
+    const d=await r.json();
+    const raw=d.content?.find(b=>b.type==='text')?.text??'';
+    const res=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    showResult(res);
+  }catch{showErr('Identifikace selhala. Zkuste to znovu.');document.getElementById('bid').disabled=false;}
+};
+
+// ── NIGHT: Find mountains ──
+document.getElementById('bscan').onclick=async()=>{
+  if(!gps)return;
+  document.getElementById('bscan').disabled=true;
+  document.getElementById('night-instr').style.display='none';
+  showNightLoad();
+
+  const ctx=[
+    `GPS: ${gps.lat.toFixed(5)}°N, ${gps.lon.toFixed(5)}°E`,
+    hdg!=null?`Aktuální směr pohledu kompasu: ${hdg}° (${D16[Math.round(hdg/22.5)%16]})`:'Kompas nedostupný',
+    altVal!=null?`Výška stanoviště: ${altVal}m n.m.`:'',
+  ].filter(Boolean).join(' | ');
+
+  const prompt=`Jsi expert na horskou geografii a topografii. Na základě GPS souřadnic najdi hory a vrcholy v okolí pozorovatele.
+
+Data: ${ctx}
+
+Vrať seznam 5-8 nejbližších a nejvýraznějších hor/vrcholů v okolí do 100 km. Pro každou horu uveď azimut (0-360°) od pozorovatele.
+
+Odpověz POUZE validním JSON bez backticks:
+{"mountains":[
+  {"name":"Název vrcholu","elevation_m":1602,"distance_km":8,"azimuth":45,"range":"Pohoří","description":"Krátký popis 1-2 věty.","confidence":90},
+  {"name":"Jiný vrchol","elevation_m":1234,"distance_km":15,"azimuth":120,"range":"Pohoří","description":"Popis.","confidence":85}
+]}
+
+azimuth je úhel od severu (0=Sever, 90=Východ, 180=Jih, 270=Západ). confidence je 0-100.`;
+
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:[{type:'text',text:prompt}]}]})});
+    const d=await r.json();
+    const raw=d.content?.find(b=>b.type==='text')?.text??'';
+    const res=JSON.parse(raw.replace(/```json|```/g,'').trim());
+    foundMountains=res.mountains||[];
+    showNightResult(foundMountains);
+  }catch{
+    document.getElementById('night-out').innerHTML='<div class="errc"><span style="font-size:1.1rem">⚠️</span><div class="errt">Nepodařilo se načíst hory. Zkontrolujte připojení a zkuste znovu.</div></div>';
+    document.getElementById('bscan').disabled=false;
+  }
+};
+
+// ── Update compass labels ──
+function updateLabelPositions(){
+  if(!foundMountains.length||hdg==null)return;
+  const container=document.getElementById('mtn-labels');
+  const sky=document.getElementById('night-sky');
+  const w=sky.offsetWidth;
+  const h=sky.offsetHeight;
+  container.innerHTML='';
+
+  // Show mountains within ±60° of current heading
+  foundMountains.forEach(m=>{
+    let diff=m.azimuth-hdg;
+    while(diff>180)diff-=360;
+    while(diff<-180)diff+=360;
+    if(Math.abs(diff)>65)return;
+
+    const x=w/2+(diff/65)*(w*0.42);
+    const yBase=h*0.25+Math.random()*h*0.15;
+
+    const label=document.createElement('div');
+    label.className='mtn-label';
+    label.style.left=x+'px';
+    label.style.top=yBase+'px';
+    label.innerHTML=`
+      <div class="mtn-label-name">${m.name}</div>
+      <div class="mtn-label-alt">${m.elevation_m?m.elevation_m.toLocaleString()+' m':''}</div>
+      <div class="mtn-label-line"></div>
+      <div class="mtn-label-dot"></div>`;
+    container.appendChild(label);
+  });
+}
+
+// ── Night result ──
+function showNightResult(mountains){
+  document.getElementById('n-cnt').textContent=mountains.length;
+  document.getElementById('n-cnt').className='nsval ok';
+
+  let html='<div class="mtn-list-title">Hory v okolí</div>';
+  mountains.forEach(m=>{
+    const dir=D8[Math.round(m.azimuth/45)%8];
+    const isVisible=hdg!=null&&Math.abs(((m.azimuth-hdg+540)%360)-180)<60;
+    html+=`<div class="mtn-card" style="${isVisible?'border-color:rgba(126,200,227,0.35);background:rgba(126,200,227,0.05)':''}">
+      <div class="mtn-card-dir">${dir}</div>
+      <div class="mtn-card-info">
+        <div class="mtn-card-name">${m.name}${isVisible?' 👁':''}  </div>
+        <div class="mtn-card-sub">${[m.range,m.azimuth+'°'].filter(Boolean).join(' · ')}</div>
+        <div class="mtn-card-conf"><div class="mtn-card-conf-fill" style="width:${m.confidence}%"></div></div>
+      </div>
+      <div class="mtn-card-right">
+        <div class="mtn-card-elev">${m.elevation_m?m.elevation_m.toLocaleString()+' m':'—'}</div>
+        <div class="mtn-card-dist">${m.distance_km?m.distance_km+' km':'—'}</div>
+      </div>
+    </div>`;
+  });
+  document.getElementById('night-out').innerHTML=html;
+  updateLabelPositions();
+  document.getElementById('bscan').disabled=false;
+  document.getElementById('bscan').textContent='🔄 Aktualizovat';
+}
+
+function showNightLoad(){
+  document.getElementById('night-out').innerHTML=`<div class="ldw">
+    <div class="mtnl">
+      <div class="rings"><div class="ring"></div><div class="ring"></div><div class="ring"></div></div>
+      <svg width="72" height="52" viewBox="0 0 56 40" fill="none"><path d="M2 38L18 8l8 12 8-8 20 26Z" stroke="#7ec8e3" stroke-width="2" stroke-linejoin="round" fill="rgba(126,200,227,.08)"/></svg>
+    </div>
+    <div class="ltxt">Hledám hory v okolí…</div>
+  </div>`;}
+
+// ── Day helpers ──
+function cc(c){return c>=75?'high':c>=50?'med':'low';}
+function showLoad(){document.getElementById('out').innerHTML=`<div class="ldw"><div class="mtnl"><div class="rings"><div class="ring"></div><div class="ring"></div><div class="ring"></div></div><svg width="72" height="52" viewBox="0 0 56 40" fill="none"><path d="M2 38L18 8l8 12 8-8 20 26Z" stroke="#7ec8e3" stroke-width="2" stroke-linejoin="round" fill="rgba(126,200,227,.08)"/></svg></div><div class="ltxt">Analyzuji terén…</div></div>`;}
+function showErr(m){document.getElementById('out').innerHTML=`<div class="errc"><span style="font-size:1.1rem">⚠️</span><div class="errt">${m}</div></div>`;}
+function showResult(r){
+  const c=cc(r.confidence);
+  document.getElementById('out').innerHTML=`<div class="rc">
+    <div class="rh"><div class="rt">
+      <div><div class="rn">${r.name}</div>${r.range||r.country?`<div class="rs">${[r.range,r.country].filter(Boolean).join(' · ')}</div>`:''}</div>
+      <div class="cb ${c}"><div class="cn">${r.confidence}%</div><div class="cbb"><div class="cbf" style="width:${r.confidence}%"></div></div><div class="cl">Jistota</div></div>
+    </div></div>
+    <div class="sg">
+      <div class="sc"><div class="scl">Nadm. výška</div><div class="scv ${r.elevation_m?'a':''}">${r.elevation_m?r.elevation_m.toLocaleString()+' m':'—'}</div></div>
+      <div class="sc"><div class="scl">Vzdálenost</div><div class="scv ${r.distance_km?'a':''}">${r.distance_km?r.distance_km+' km':'—'}</div></div>
+      <div class="sc"><div class="scl">Pohoří</div><div class="scv">${r.range??'—'}</div></div>
+      <div class="sc"><div class="scl">Stát</div><div class="scv">${r.country??'—'}</div></div>
+    </div>
+    ${r.description?`<div class="desc"><p>${r.description}</p></div>`:''}
+    ${r.alternatives?.length?`<div class="alts"><div class="al">Další možnosti</div>${r.alternatives.map(a=>`<div class="ai"><div class="an">${a.name}</div><div class="ap">${a.confidence}%</div></div>`).join('')}</div>`:''}
+  </div>`;
+  document.getElementById('bid').disabled=false;
+}
+</script>
+</body>
+</html>
